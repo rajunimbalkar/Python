@@ -1,12 +1,12 @@
 #!/usr/bin/python
 from flask import Flask, jsonify, abort, make_response, request, url_for
-from flask.ext.httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPBasicAuth
 auth = HTTPBasicAuth()
 
 @auth.get_password
 def get_password(username):
-    if username == 'miguel':
-        return 'python'
+    if username == 'Test':
+        return 'Password'
     return None
 
 @auth.error_handler
@@ -15,27 +15,31 @@ def unauthorized():
 
 app = Flask(__name__, static_url_path = "")
 
-tasks = [
+jobs = [
     {
-        'id': 1,
-        'title': u'Buy groceries',
-        'description': u'Milk, Cheese, Pizza, Fruit, Tylenol', 
-        'done': False
+        'job_id': 1,
+        'start_time': u'23 Nov 2016',
+        'end_time': u'23 Nov 2016',
+        'roll_count':'101',
+        'ip':'127.0.0.1',
+        'state':"pending",
+        'analysis': 'unknown'
     },
     {
-        'id': 2,
-        'title': u'Learn Python',
-        'description': u'Need to find a good Python tutorial on the web', 
-        'done': False
+        'job_id': 2,
+        'start_time': u'25 Nov 2016',
+        'end_time': u'25 Nov 2016',
+        'roll_count':'111',
+        'ip':'127.0.0.1',
+        'state':"pending",
+        'analysis': 'unknown'
     }
 ]
 
-def make_public_task(task):
-    new_task = {}
-    for field in task:
-        if field == 'id':
-            new_task['uri'] = url_for('get_task', task_id=task['id'], _external=True)
-        else:
+def make_public_task(job):
+    new_job = {}
+    new_task['job_id'] = tasks[-1]['job_id']+1
+    for field in job:
             new_task[field] = task[field]
     return new_task
 
@@ -44,56 +48,44 @@ def make_public_task(task):
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
 
-@app.route('/todo/api/v1.0/tasks', methods=['GET'])
+@app.route('/sps/filacam/v1/CurrState', methods=['POST'])
 @auth.login_required
-def get_tasks():
-    return jsonify({'tasks': [make_public_task(task) for task in tasks]})
+def post_currentstate():
+    job = request.json;
+    if not 'job_id' in job:
+        abort(400)
+    for currjob in jobs:
+        if currjob['job_id'] == job['job_id']:
+            currjob['state'] = job['state'];
+    return jsonify(currjob)
 
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['GET'])
-def get_task(task_id):
-    task = [task for task in tasks if task['id'] == task_id]
-    if len(task) == 0:
+
+@app.route('/sps/filacam/v1/IP', methods=['POST'])
+@auth.login_required
+def post_IP():
+    if not request.json or not 'ip' in request.json:
+        abort(400)
+    job = request.json;
+
+return jsonify({'JOB': 'Qued up'})
+
+@app.route('/sps/filacam/v1/jobs', methods=['GET'])
+def get_jobs():
+    fromJob = request.args.get('from');
+    toJob = request.args.get('to');
+    if len(fromJob) == 0 or len(toJob) == 0:
         abort(404)
-    return jsonify({'task': task[0]})
+    
 
-@app.route('/todo/api/v1.0/tasks', methods=['POST'])
+    return jsonify({'job': "Test"})
+
+@app.route('/sps/filacam/v1/analysis', methods=['POST'])
 def create_task():
     if not request.json or not 'title' in request.json:
         abort(400)
-    task = {
-        'id': tasks[-1]['id'] + 1,
-        'title': request.json['title'],
-        'description': request.json.get('description', ""),
-        'done': False
-    }
+    task = make_public_task()
     tasks.append(task)
     return jsonify({'task': task}), 201
-
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['PUT'])
-def update_task(task_id):
-    task = [task for task in tasks if task['id'] == task_id]
-    if len(task) == 0:
-        abort(404)
-    if not request.json:
-        abort(400)
-    if 'title' in request.json and type(request.json['title']) != unicode:
-        abort(400)
-    if 'description' in request.json and type(request.json['description']) is not unicode:
-        abort(400)
-    if 'done' in request.json and type(request.json['done']) is not bool:
-        abort(400)
-    task[0]['title'] = request.json.get('title', task[0]['title'])
-    task[0]['description'] = request.json.get('description', task[0]['description'])
-    task[0]['done'] = request.json.get('done', task[0]['done'])
-    return jsonify({'task': task[0]})
-
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=['DELETE'])
-def delete_task(task_id):
-    task = [task for task in tasks if task['id'] == task_id]
-    if len(task) == 0:
-        abort(404)
-    tasks.remove(task[0])
-    return jsonify({'result': True})
 
 if __name__ == '__main__':
     app.run(debug=True)
