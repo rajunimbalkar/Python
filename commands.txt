@@ -1,0 +1,6 @@
+sudo pip install --ignore-installed six
+sudo pip install cassandra-driver
+sudo pip install cql
+brew install cassandra
+cassandra
+cqlsh
