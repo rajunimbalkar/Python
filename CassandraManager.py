@@ -66,8 +66,8 @@ class SPSDBManager:
 
         jobObj = {
         'job_id': 1,
-        'start_time': datetime.datetime(2016,9,23), #"23 Nov 2016",
-        'end_time': datetime.datetime(2016,9,23),
+        'start_time': datetime.datetime.now(),
+        'end_time': datetime.datetime.now(),
         'roll_count':101,
         'ip':"127.0.0.1",
         'state':"pending",
@@ -78,13 +78,21 @@ class SPSDBManager:
     def addNewJob(self, jobObject):
         stmt = self.session.prepare("""
         INSERT INTO %s.%s (job_id, start_time, end_time,roll_count,ip,state,analysis)
-        VALUES (?,?,?,?,?,?,?) 
-        IF NOT EXISTS
+        VALUES (:job_id,:start_time,:end_time,:roll_count,:ip,:state,:analysis)
         """ %(self.sps_keyspacename, self.sps_tablename))
+
+        values = {
+          'job_id':jobObject['job_id'],
+          'start_time': jobObject['start_time'],
+          'end_time':jobObject['end_time'],
+          'roll_count':jobObject['roll_count'],
+          'ip': jobObject['ip'],
+          'state': jobObject['state'],
+          'analysis': jobObject['analysis']
+          }
+
+        self.session.execute(stmt,values);
         
-        self.session.execute(stmt,[jobObject['job_id'],jobObject['start_time'],jobObject['end_time'],jobObject['roll_count'],jobObject['ip'],jobObject['state'],jobObject['analysis']])
-
-
     def selectAllJobs(self):
         future = self.session.execute_async("""SELECT * FROM %s.%s""" %(self.sps_keyspacename, self.sps_tablename))
         try:

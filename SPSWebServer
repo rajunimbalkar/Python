@@ -80,12 +80,15 @@ def get_jobs():
     return jsonify({'job': "Test"})
 
 @app.route('/sps/filacam/v1/analysis', methods=['POST'])
+def post_analysis():
+    return jsonify({'analysis': 'unknown'})
+
 def create_task():
     if not request.json or not 'title' in request.json:
         abort(400)
     task = make_public_task()
     tasks.append(task)
-    return jsonify({'task': task}), 201
+    return jsonify({'task': task})
 
 if __name__ == '__main__':
     app.run(debug=True)
